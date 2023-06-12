@@ -62,6 +62,29 @@ function CensoredText()
 	}
 }
 
+// Returns the inputted number as a string with zeros added to the beginning to make it up to the right length
+function AddZeros(num, len)
+{
+	let numL;
+	if (num == 0) numL = 1;
+	else numL = Math.floor(Math.log10(num)) + 1;
+	if (numL > len || numL < 1 || !numL) return null;
+	return '0'.repeat(len - numL)+num;
+}
+
+function DaysSince(dateNum)
+{
+	return Math.floor((Date.now() - dateNum) / (1000 * 60 * 60 * 24));
+}
+
+// Make the date like they do
+function MakePrettyDate(dateNum)
+{
+	let date = new Date(dateNum);
+	return date.getDate()+' '+date.toLocaleString('en-US', {month:'short'})+' '+date.getFullYear()
+		+', '+AddZeros(date.getHours(), 2)+':'+AddZeros(date.getMinutes(), 2)+' ('+DaysSince(dateNum)+' days ago)';
+}
+
 function AddPlus(num)
 {
 	if (num > 0) return '+'+num;
@@ -101,6 +124,13 @@ function MakeTitleFromInfo(info)
 	return title;
 }
 
+// Takes a HTMLCollection of tags
+function HasTag(tags, tag)
+{
+	for (let i = 0; i < tags.length; i++)
+		if (tags[i].innerHTML == tag) return true;
+	return false;
+}
 
 // SCRAPING FUNCTIONS
 // The alternate title is the title from the mainlist, and is only for SCPs
@@ -156,13 +186,26 @@ function ScrapeAltTitleX(mainList, path, callbackSuccess, callbackFail)
 	return true;
 }
 
-function ScrapeAltTitle(path, callbackSuccess, callbackFail)
+function ScrapeAltTitle(page, path, callbackSuccess, callbackFail)
 {
-	if (path.match(/^\/scp-(((?!0{3,})\d{3,})|(\d{3,}-ex))$/))
+	let tags = page.getElementsByClassName('page-tags');
+	if (tags.length == 0) { callbackFail(); return false; }
+	tags = tags[0].getElementsByTagName('span')[0].getElementsByTagName('a');
+	if (tags.length == 0) { callbackFail(); return false; }
+	
+	if (HasTag(tags, 'scp'))
 	{
-		let scpNo, mainList;
-		if (scpNo = path.match(/^\/scp-((?!0{3,})\d{3,})$/)) // You don't want it to be SCP-000, as that is not listed on the mainlist
+		if (HasTag(tags, 'joke'))
+			ScrapeAltTitleX('/joke-scps', path, callbackSuccess, callbackFail);
+		else if (HasTag(tags, 'explained'))
+			ScrapeAltTitleX('/scp-ex', path, callbackSuccess, callbackFail);
+		else if (HasTag(tags, '001-proposal'))
+			ScrapeAltTitleX('/scp-001', path, callbackSuccess, callbackFail);
+		else
 		{
+			let mainList;
+			let scpNo = path.match(/^\/scp-(\d{3,})$/);
+			if (!scpNo) { callbackFail(); return false; }
 			scpNo = +scpNo[1];
 			
 			const series = Math.floor(scpNo / 1000) + 1;
@@ -170,19 +213,13 @@ function ScrapeAltTitle(path, callbackSuccess, callbackFail)
 				mainList = '/scp-series';
 			else
 				mainList = '/scp-series-'+series;
-		} else
-			mainList = '/scp-ex';
-		
-		ScrapeAltTitleX(mainList, path, callbackSuccess, callbackFail);
+			ScrapeAltTitleX(mainList, path, callbackSuccess, callbackFail);
+		}
+		return true;
 	} else
-	{ // The 001 proposals' and joke SCPs' names are too unpredictable to do with regexes
-		ScrapeAltTitleX('/joke-scps', path, callbackSuccess, function()
-		{ // Failure
-			ScrapeAltTitleX('/scp-001', path, callbackSuccess, callbackFail);
-		});
+	{
+		callbackFail(); return false;
 	}
-	
-	return true;
 }
 
 function ScrapeRating(page)
@@ -214,27 +251,22 @@ function ScrapeAuthor(page, callbackSuccess, callbackFail)
 	
 	SetHttpRequestCallback(httpRequest, function(response)
 	{
-		// Parsing the author out of the page
+		// Parsing the author and creation date out of the page
 		const jsonResponse = JSON.parse(response);
 		if (jsonResponse.body)
 		{
-			let a = domParser.parseFromString(jsonResponse.body, 'text/html');
-			if (!a) { callbackFail(); return false; }
+			let retVal = {};
+			let cells = domParser.parseFromString(jsonResponse.body, 'text/html');
+			if (!cells) { callbackFail(); return false; }
+			cells = cells.getElementsByClassName('page-history')[0].rows;
+			cells = cells[cells.length - 1].cells;
+			if (cells.length < 6) { callbackFail(); return false; }
 			
-			a = a.getElementsByClassName('page-history');
-			if (a.length < 1) { callbackFail(); return false; }
-			
-			a = a[0].rows;
-			if (a.length < 1) { callbackFail(); return false; }
-			
-			a = a[a.length - 1].cells;
-			if (a.length < 5) { callbackFail(); return false; }
-			
-			a = a[4].textContent;
-			if (!a) { callbackFail(); return false; }
-			// Better safe than sorry
-			
-			callbackSuccess(a);
+			retVal.author = cells[4].textContent;
+			/*	The creation date is given in the usual Javascript time, but with the last 3 digits omitted.
+				This gives it a precision down to seconds */
+			retVal.dateCreated = +cells[5].getElementsByTagName('span')[0].className.match(/time_(\d{10})/)[1];
+			callbackSuccess(retVal);
 		} else { callbackFail(); return false; }
 	
 	}, callbackFail);
@@ -255,7 +287,7 @@ function ScrapeAuthor(page, callbackSuccess, callbackFail)
 	return true;
 }
 
-function ScrapePageDataFromP(page, plainPage, callback)
+function ScrapePageDataFromP(page, plainPage, path, callback)
 {
 	let retVal = {};
 	
@@ -269,14 +301,28 @@ function ScrapePageDataFromP(page, plainPage, callback)
 	if (rating)
 		retVal.rating = rating;
 	
-	ScrapeAuthor(plainPage, function(author)
+	ScrapeAuthor(plainPage, function(ad)
 	{
-		retVal.author = author;
-		callback(retVal);
+		retVal = Object.assign(retVal, ad);
+		ScrapeAltTitle(page, path, function(altTitle)
+		{
+			retVal.altTitle = altTitle;
+			callback(retVal);
+		}, function()
+		{
+			callback(retVal);
+		});
 	}, function()
 	{
-		console.warn('Could not scrape author.');
-		callback(retVal);
+		console.warn('Could not scrape author and creation date for '+path);
+		ScrapeAltTitle(page, path, function(altTitle)
+		{
+			retVal.altTitle = altTitle;
+			callback(retVal);
+		}, function()
+		{
+			callback(retVal);
+		});
 	});
 }
 
@@ -284,11 +330,11 @@ function ScrapePageDataFromP(page, plainPage, callback)
 function ScrapePageData(path, callbackSuccess, callbackFail)
 {
 	if (window.location.pathname == path)
-		ScrapePageDataFromP(document, document.documentElement.outerHTML, callbackSuccess);
+		ScrapePageDataFromP(document, document.documentElement.outerHTML, path, callbackSuccess);
 	else
 		ajax('https://'+HOST+path, function(response)
 		{ // Success
-			ScrapePageDataFromP(domParser.parseFromString(response, 'text/html'), response, callbackSuccess);
+			ScrapePageDataFromP(domParser.parseFromString(response, 'text/html'), response, path, callbackSuccess);
 		}, function(){ console.warn('Could not download page for '+path); callbackFail(); });
 	return true;
 }
@@ -301,36 +347,18 @@ function GetScpInfo(path, callback)
 	chrome.storage.local.get(path, function(savedInfo)
 	{
 		if (savedInfo[path] && savedInfo[path].expires > Date.now())
-		{
 			callback(savedInfo[path]);
-		} else
-		{ // Scrape everything
-			let info = {};
-			info[path] = {};
-			ScrapeAltTitle(path, function(altTitle)
+		else
+			// Scrape everything
+			ScrapePageData(path, function(data)
 			{
-				info[path].altTitle = altTitle;
-				ScrapePageData(path, function(data)
-				{
-					info[path] = Object.assign(info[path], data);
-					info[path].expires = Date.now() + CACHE_EXPIRES;
-					
-					chrome.storage.local.set(info);
-					callback(info[path]);
-				}, function(){});
-			
-			}, function()
-			{ // Non-SCP pages (e.g. tales) do not have an alternate title
-				ScrapePageData(path, function(data)
-				{
-					info[path] = data;
-					info[path].expires = Date.now() + CACHE_EXPIRES;
-					
-					chrome.storage.local.set(info);
-					callback(info[path]);
-				}, function(){});
-			});
-		}
+				let info = {};
+				info[path] = data;
+				info[path].expires = Date.now() + CACHE_EXPIRES;
+				
+				chrome.storage.local.set(info);
+				callback(info[path]);
+			}, function(){});
 	});
 }
 
@@ -490,14 +518,18 @@ if (window.location.pathname.match(/^\/((scp-series(-[0-9]+)?(-tales-edition)?)|
 	}
 }
 
-// Put more info in the titles of pages
 GetScpInfo(window.location.pathname, function(info)
 {
+	// Put more info in the titles of pages
 	let title = MakeTitleFromInfo(info);
 	if (!title)
 		return;
 	title += ' - SCP Foundation';
 	document.title = title;
+	
+	// Put author and creation date at the bottom
+	const pageInfo = document.getElementById('page-info');
+	pageInfo.innerHTML = 'By '+info.author+', first uploaded: '+MakePrettyDate(info.dateCreated * 1000)+'<br>'+pageInfo.innerHTML;
 });
 
 AddLinkHoverInfo();
