@@ -1,33 +1,85 @@
 {
-	"manifest_version": 2,
+	"manifest_version": 3,
 	"name": "SCP Ratings in Mainlist",
 	"version": "3.0",
 	"author": "Oliver Robey",
 	
-	"description": "Shows the rating of the SCP in the mainlist (SCP Series, SCP Series 2, etc).",
+	"description": "For the SCP wiki(s). Shows the rating of SCP objects in their listings (SCP Series, SCP Series 2, etc).",
 	
 	"icons": {
-		"48": "icon-48.png"
+		"48": "icon-48.bmp"
+	},
+	
+	"action": {
+		"default_icon": "icon-settings-48.bmp",
+		"default_title": "Settings for SCP Ratings in Mainlist",
+		"default_popup": "popup.html"
 	},
 	
 	"content_scripts": [
 		{
 			"matches": [
-				"https://scp-wiki.wikidot.com/*"
+				"*://scp-int.wikidot.com/*", 			
+				"*://scp-wiki.wikidot.com/*", "*://scpwiki.com/*", "*://scp-wiki.net/*", "*://scp-wiki.com/*",
+				"*://scpfoundation.net/*", "*://scpfoundation.ru/*", "*://scp-ru.wikidot.com/*",
+				"*://scpko.wikidot.com/*", "*://ko.scp-wiki.net/*",
+				"*://scp-wiki-cn.wikidot.com/*",
+				"*://fondationscp.wikidot.com/*",
+				"*://scp-pl.wikidot.com/*", "*://scp-wiki.net.pl/*",
+				"*://lafundacionscp.wikidot.com/*", "*://scp-es.com/*",
+				"*://scp-th.wikidot.com/*",
+				"*://scp-jp.wikidot.com/*", "*://ja.scp-wiki.net/*",
+				"*://scp-wiki-de.wikidot.com/*",
+				"*://fondazionescp.wikidot.com/*",
+				"*://scp-ukrainian.wikidot.com/*",
+				"*://scp-pt-br.wikidot.com/*",
+				"*://scp-cs.wikidot.com/*",
+				"*://scp-zh-tr.wikidot.com/*",
+				"*://scp-vn.wikidot.com/*",
+				
+				"*://wanderers-library.wikidot.com/*",
+				"*://wanderers-library-ko.wikidot.com/*",
+				"*://wanderers-library-pl.wikidot.com/*",
+				"*://wanderers-library-jp.wikidot.com/*",
+				"*://wanderers-library-cs.wikidot.com/*"
 			],
 			
-			"js": ["scp-ratings-in-mainlist.js"]
+			"js": [ "constants.js", "scp-ratings-in-mainlist.js" ]
 		}
 	],
 	
 	"permissions": [
-		"https://scp-wiki.wikidot.com/*",
 		"cookies",
 		"storage",
 		"unlimitedStorage"
 	],
+	"host_permissions": [
+		"*://scp-int.wikidot.com/*", 			
+		"*://scp-wiki.wikidot.com/*", "*://scpwiki.com/*", "*://scp-wiki.net/*", "*://scp-wiki.com/*",
+		"*://scpfoundation.net/*", "*://scpfoundation.ru/*", "*://scp-ru.wikidot.com/*",
+		"*://scpko.wikidot.com/*", "*://ko.scp-wiki.net/*",
+		"*://scp-wiki-cn.wikidot.com/*",
+		"*://fondationscp.wikidot.com/*",
+		"*://scp-pl.wikidot.com/*", "*://scp-wiki.net.pl/*",
+		"*://lafundacionscp.wikidot.com/*", "*://scp-es.com/*",
+		"*://scp-th.wikidot.com/*",
+		"*://scp-jp.wikidot.com/*", "*://ja.scp-wiki.net/*",
+		"*://scp-wiki-de.wikidot.com/*",
+		"*://fondazionescp.wikidot.com/*",
+		"*://scp-ukrainian.wikidot.com/*",
+		"*://scp-pt-br.wikidot.com/*",
+		"*://scp-cs.wikidot.com/*",
+		"*://scp-zh-tr.wikidot.com/*",
+		"*://scp-vn.wikidot.com/*",
+		
+		"*://wanderers-library.wikidot.com/*",
+		"*://wanderers-library-ko.wikidot.com/*",
+		"*://wanderers-library-pl.wikidot.com/*",
+		"*://wanderers-library-jp.wikidot.com/*",
+		"*://wanderers-library-cs.wikidot.com/*"
+	],
 	
-	"applications": {
+	"browser_specific_settings": {
 		"gecko": {
 			"id": "scp-ratings-in-mainlist@example.com"
 		}
