@@ -7,11 +7,11 @@
 	"description": "For the SCP wiki(s). Shows the rating of SCP objects in their listings (SCP Series, SCP Series 2, etc).",
 	
 	"icons": {
-		"48": "icon-48.bmp"
+		"48": "icon-48.png"
 	},
 	
 	"action": {
-		"default_icon": "icon-settings-48.bmp",
+		"default_icon": "icon-settings-48.png",
 		"default_title": "Settings for SCP Ratings in Mainlist",
 		"default_popup": "popup.html"
 	},
