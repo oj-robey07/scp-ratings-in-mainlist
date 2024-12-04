@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "SCP Ratings in Mainlist",
-	"version": "3.0",
+	"version": "4.0",
 	"author": "Oliver Robey",
 	
 	"description": "For the SCP wiki(s). Shows the rating of SCP objects in their listings (SCP Series, SCP Series 2, etc).",
