@@ -49,7 +49,6 @@
 	],
 	
 	"permissions": [
-		"cookies",
 		"storage",
 		"unlimitedStorage"
 	],
@@ -81,7 +80,7 @@
 	
 	"browser_specific_settings": {
 		"gecko": {
-			"id": "scp-ratings-in-mainlist@example.com"
+			"id": "{ec892b98-57ec-4d3c-9256-5ec4fc8a6816}"
 		}
 	}
 }
